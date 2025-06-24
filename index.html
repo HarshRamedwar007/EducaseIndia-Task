@@ -24,9 +24,7 @@
 
   <script>
     // --------- getCubeSvg() as stub for demonstration ------------
-    function getCubeSvg(colorString) {
-      // For testing, we use a placeholder text instead of SVG:
-      // In your environment, replace this with the provided SVG renderer.
+    function getCubeSvg(colorString) { 
       document.getElementById('svgContainer').innerHTML = `
         <pre style="font-size: 16px; text-align: left;">
           ${formatFaces(colorString)}
@@ -41,7 +39,7 @@
         s.slice(27,36), s.slice(36,45), s.slice(45,54)
       ];
       const [U,R,F,D,L,B] = parts.map(a => splitFace(a));
-      // Return a simple ASCII unfolded net:
+       
       let out = '';
       out += '      ' + U[0].join('') + '\n';
       out += '      ' + U[1].join('') + '\n';
@@ -146,13 +144,13 @@
       }
     }
 
-    // --- Application logic ---
+     
     const cube = new Cube();
     const faces = ['U', 'D', 'F', 'B', 'L', 'R'];
     const scrambleMoves = [];
     renderCube();
 
-    // Create manual buttons
+     
     const ctrl = document.getElementById('manualControls');
     faces.forEach(face => {
       ['CW','CCW'].forEach(dir => {
@@ -166,7 +164,7 @@
       });
     });
 
-    // Scramble button
+     
     document.getElementById('scrambleBtn').onclick = () => {
       scrambleMoves.length = 0;
       for (let i = 0; i < 20; i++) {
@@ -179,7 +177,7 @@
       alert('Scrambled!');
     };
 
-    // Solve button
+     
     document.getElementById('solveBtn').onclick = async () => {
       for (let i = scrambleMoves.length - 1; i >= 0; i--) {
         const {f, dir} = scrambleMoves[i];
