@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rubik's Cube Solver</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; }
+    .controls button { margin: 4px; padding: 8px 12px; }
+    #svgContainer { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Rubik's Cube - Manual Rotate / Scramble / Solve</h1>
+
+  <div class="controls">
+    <h3>Manual Rotate</h3>
+    <div id="manualControls"></div>
+    <h3>Actions</h3>
+    <button id="scrambleBtn">Scramble</button>
+    <button id="solveBtn">Solve</button>
+  </div>
+
+  <div id="svgContainer"></div>
+
+  <script>
+    // --------- getCubeSvg() as stub for demonstration ------------
+    function getCubeSvg(colorString) {
+      // For testing, we use a placeholder text instead of SVG:
+      // In your environment, replace this with the provided SVG renderer.
+      document.getElementById('svgContainer').innerHTML = `
+        <pre style="font-size: 16px; text-align: left;">
+          ${formatFaces(colorString)}
+        </pre>
+      `;
+    }
+
+    function formatFaces(s) {
+      // U R F D L B
+      const parts = [
+        s.slice(0,9), s.slice(9,18), s.slice(18,27),
+        s.slice(27,36), s.slice(36,45), s.slice(45,54)
+      ];
+      const [U,R,F,D,L,B] = parts.map(a => splitFace(a));
+      // Return a simple ASCII unfolded net:
+      let out = '';
+      out += '      ' + U[0].join('') + '\n';
+      out += '      ' + U[1].join('') + '\n';
+      out += '      ' + U[2].join('') + '\n';
+      for (let i = 0; i < 3; i++) {
+        out += L[i].join('') + F[i].join('') + R[i].join('') + B[i].join('') + '\n';
+      }
+      out += '      ' + D[0].join('') + '\n';
+      out += '      ' + D[1].join('') + '\n';
+      out += '      ' + D[2].join('') + '\n';
+      return out;
+    }
+
+    function splitFace(s) {
+      return [s.slice(0,3).split(''), s.slice(3,6).split(''), s.slice(6,9).split('')];
+    }
+    // ------------------------------------------------------------
+
+    class Cube {
+      constructor() {
+        this.reset();
+      }
+
+      reset() {
+        this.faces = {
+          U: Array(9).fill('w'),
+          D: Array(9).fill('y'),
+          F: Array(9).fill('g'),
+          B: Array(9).fill('b'),
+          L: Array(9).fill('o'),
+          R: Array(9).fill('r')
+        };
+      }
+
+      rotateFaceArray(faceArr, direction) {
+        const [a,b,c,d,e,f,g,h,i] = faceArr;
+        return direction === 'CW'
+          ? [g, d, a, h, e, b, i, f, c]
+          : [c, f, i, b, e, h, a, d, g];
+      }
+
+      rotate(face, direction = 'CW') {
+        const f = this.faces;
+        this.faces[face] = this.rotateFaceArray(this.faces[face], direction);
+        const times = direction === 'CW' ? 1 : 3;
+        for (let t = 0; t < times; t++) {
+          let tmp;
+          switch (face) {
+            case 'U':
+              tmp = [f.B[0],f.B[1],f.B[2]];
+              [f.B[0],f.B[1],f.B[2]] = [f.R[0],f.R[1],f.R[2]];
+              [f.R[0],f.R[1],f.R[2]] = [f.F[0],f.F[1],f.F[2]];
+              [f.F[0],f.F[1],f.F[2]] = [f.L[0],f.L[1],f.L[2]];
+              [f.L[0],f.L[1],f.L[2]] = tmp;
+              break;
+            case 'D':
+              tmp = [f.F[6],f.F[7],f.F[8]];
+              [f.F[6],f.F[7],f.F[8]] = [f.R[6],f.R[7],f.R[8]];
+              [f.R[6],f.R[7],f.R[8]] = [f.B[6],f.B[7],f.B[8]];
+              [f.B[6],f.B[7],f.B[8]] = [f.L[6],f.L[7],f.L[8]];
+              [f.L[6],f.L[7],f.L[8]] = tmp;
+              break;
+            case 'F':
+              tmp = [f.U[6],f.U[7],f.U[8]];
+              [f.U[6],f.U[7],f.U[8]] = [f.L[8],f.L[5],f.L[2]];
+              [f.L[2],f.L[5],f.L[8]] = [f.D[2],f.D[1],f.D[0]];
+              [f.D[0],f.D[1],f.D[2]] = [f.R[0],f.R[3],f.R[6]];
+              [f.R[0],f.R[3],f.R[6]] = tmp;
+              break;
+            case 'B':
+              tmp = [f.U[0],f.U[1],f.U[2]];
+              [f.U[0],f.U[1],f.U[2]] = [f.R[2],f.R[5],f.R[8]];
+              [f.R[2],f.R[5],f.R[8]] = [f.D[8],f.D[7],f.D[6]];
+              [f.D[6],f.D[7],f.D[8]] = [f.L[0],f.L[3],f.L[6]];
+              [f.L[0],f.L[3],f.L[6]] = tmp;
+              break;
+            case 'L':
+              tmp = [f.U[0],f.U[3],f.U[6]];
+              [f.U[0],f.U[3],f.U[6]] = [f.B[8],f.B[5],f.B[2]];
+              [f.B[2],f.B[5],f.B[8]] = [f.D[0],f.D[3],f.D[6]];
+              [f.D[0],f.D[3],f.D[6]] = [f.F[0],f.F[3],f.F[6]];
+              [f.F[0],f.F[3],f.F[6]] = tmp;
+              break;
+            case 'R':
+              tmp = [f.U[2],f.U[5],f.U[8]];
+              [f.U[2],f.U[5],f.U[8]] = [f.F[2],f.F[5],f.F[8]];
+              [f.F[2],f.F[5],f.F[8]] = [f.D[2],f.D[5],f.D[8]];
+              [f.D[2],f.D[5],f.D[8]] = [f.B[6],f.B[3],f.B[0]];
+              [f.B[0],f.B[3],f.B[6]] = tmp;
+              break;
+          }
+        }
+      }
+
+      toString() {
+        return this.faces.U.join('') + 
+               this.faces.R.join('') +
+               this.faces.F.join('') +
+               this.faces.D.join('') +
+               this.faces.L.join('') +
+               this.faces.B.join('');
+      }
+    }
+
+    // --- Application logic ---
+    const cube = new Cube();
+    const faces = ['U', 'D', 'F', 'B', 'L', 'R'];
+    const scrambleMoves = [];
+    renderCube();
+
+    // Create manual buttons
+    const ctrl = document.getElementById('manualControls');
+    faces.forEach(face => {
+      ['CW','CCW'].forEach(dir => {
+        const btn = document.createElement('button');
+        btn.innerText = `${face} ${dir}`;
+        btn.onclick = () => {
+          cube.rotate(face, dir);
+          renderCube();
+        };
+        ctrl.appendChild(btn);
+      });
+    });
+
+    // Scramble button
+    document.getElementById('scrambleBtn').onclick = () => {
+      scrambleMoves.length = 0;
+      for (let i = 0; i < 20; i++) {
+        const f = faces[Math.floor(Math.random() * faces.length)];
+        const dir = Math.random() < 0.5 ? 'CW' : 'CCW';
+        cube.rotate(f, dir);
+        scrambleMoves.push({f, dir});
+      }
+      renderCube();
+      alert('Scrambled!');
+    };
+
+    // Solve button
+    document.getElementById('solveBtn').onclick = async () => {
+      for (let i = scrambleMoves.length - 1; i >= 0; i--) {
+        const {f, dir} = scrambleMoves[i];
+        const rev = dir === 'CW' ? 'CCW' : 'CW';
+        cube.rotate(f, rev);
+        renderCube();
+        await new Promise(r => setTimeout(r, 200)); // pause to show steps
+      }
+      alert('Solved!');
+    };
+
+    function renderCube() {
+      getCubeSvg(cube.toString());
+    }
+  </script>
+</body>
+</html>
